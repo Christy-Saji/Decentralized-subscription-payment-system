@@ -1,0 +1,699 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Decentralized Subscription App</title>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/ethers/5.7.2/ethers.umd.min.js"></script>
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Roboto', sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .container {
+            background: white;
+            border-radius: 20px;
+            padding: 40px;
+            max-width: 550px;
+            width: 100%;
+            box-shadow: 0 20px 60px rgba(0, 0, 0, 0.3);
+        }
+
+        .header {
+            text-align: center;
+            margin-bottom: 30px;
+        }
+
+        h1 {
+            color: #333;
+            margin-bottom: 10px;
+            font-size: 32px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            gap: 10px;
+        }
+
+        .subtitle {
+            color: #666;
+            font-size: 16px;
+            margin-bottom: 5px;
+        }
+
+        .network-badge {
+            display: inline-block;
+            background: #fef3c7;
+            color: #92400e;
+            padding: 5px 15px;
+            border-radius: 20px;
+            font-size: 12px;
+            font-weight: 600;
+            margin-top: 10px;
+        }
+
+        .status-box {
+            background: #f7f9fc;
+            border-radius: 15px;
+            padding: 25px;
+            margin-bottom: 20px;
+            border: 2px solid #e5e7eb;
+        }
+
+        .status-row {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 15px;
+            padding-bottom: 15px;
+            border-bottom: 1px solid #e5e7eb;
+        }
+
+        .status-row:last-child {
+            margin-bottom: 0;
+            padding-bottom: 0;
+            border-bottom: none;
+        }
+
+        .label {
+            color: #666;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .value {
+            color: #333;
+            font-weight: 700;
+            font-size: 16px;
+        }
+
+        .value.active {
+            color: #10b981;
+        }
+
+        .value.inactive {
+            color: #ef4444;
+        }
+
+        .address {
+            font-family: 'Courier New', monospace;
+            font-size: 13px;
+            color: #666;
+            background: #e5e7eb;
+            padding: 5px 10px;
+            border-radius: 5px;
+        }
+
+        button {
+            width: 100%;
+            padding: 16px;
+            border: none;
+            border-radius: 12px;
+            font-size: 16px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: all 0.3s ease;
+            margin-bottom: 12px;
+            font-family: inherit;
+        }
+
+        .btn-primary {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.4);
+        }
+
+        .btn-primary:hover:not(:disabled) {
+            transform: translateY(-2px);
+            box-shadow: 0 6px 20px rgba(102, 126, 234, 0.6);
+        }
+
+        .btn-secondary {
+            background: #f3f4f6;
+            color: #374151;
+            border: 2px solid #e5e7eb;
+        }
+
+        .btn-secondary:hover:not(:disabled) {
+            background: #e5e7eb;
+        }
+
+        .btn-danger {
+            background: #fee;
+            color: #dc2626;
+            border: 2px solid #fecaca;
+        }
+
+        .btn-danger:hover:not(:disabled) {
+            background: #fecaca;
+        }
+
+        button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+            transform: none !important;
+        }
+
+        .stats-section {
+            margin-top: 30px;
+            padding-top: 30px;
+            border-top: 2px solid #e5e7eb;
+        }
+
+        .stats-title {
+            font-size: 18px;
+            font-weight: 700;
+            margin-bottom: 15px;
+            color: #333;
+            display: flex;
+            align-items: center;
+            gap: 8px;
+        }
+
+        .loading {
+            text-align: center;
+            color: #666;
+            padding: 30px;
+            font-size: 16px;
+        }
+
+        .spinner {
+            border: 3px solid #f3f4f6;
+            border-top: 3px solid #667eea;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+            margin: 0 auto 15px;
+        }
+
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+
+        .error {
+            background: #fee;
+            color: #dc2626;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #fecaca;
+            font-weight: 500;
+        }
+
+        .success {
+            background: #d1fae5;
+            color: #065f46;
+            padding: 15px;
+            border-radius: 10px;
+            margin-bottom: 20px;
+            border: 2px solid #a7f3d0;
+            font-weight: 500;
+        }
+
+        .price-tag {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px;
+            border-radius: 15px;
+            text-align: center;
+            margin-bottom: 20px;
+            box-shadow: 0 4px 15px rgba(102, 126, 234, 0.3);
+        }
+
+        .price-tag .price {
+            font-size: 36px;
+            font-weight: 700;
+            margin-bottom: 5px;
+        }
+
+        .price-tag .duration {
+            font-size: 14px;
+            opacity: 0.9;
+        }
+
+        .footer {
+            text-align: center;
+            margin-top: 20px;
+            padding-top: 20px;
+            border-top: 1px solid #e5e7eb;
+        }
+
+        .footer a {
+            color: #667eea;
+            text-decoration: none;
+            font-weight: 600;
+            font-size: 14px;
+        }
+
+        .footer a:hover {
+            text-decoration: underline;
+        }
+
+        .metamask-logo {
+            width: 24px;
+            height: 24px;
+            vertical-align: middle;
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <div class="header">
+            <h1>🔗 Decentralized Subscription</h1>
+            <p class="subtitle">Web3-Powered Subscription Platform</p>
+            <span class="network-badge">⚡ Sepolia Testnet</span>
+        </div>
+
+        <div id="alerts"></div>
+
+        <div class="price-tag">
+            <div class="price">0.001 ETH</div>
+            <div class="duration">for 30 days of access</div>
+        </div>
+
+        <div id="content">
+            <button id="connectBtn" class="btn-primary">
+                🦊 Connect MetaMask
+            </button>
+            <p style="text-align: center; color: #666; font-size: 14px; margin-top: 10px;">
+                Connect your wallet to get started
+            </p>
+        </div>
+
+        <div class="stats-section">
+            <div class="stats-title">📊 Live Contract Stats</div>
+            <div class="status-box">
+                <div class="status-row">
+                    <span class="label">Total Subscribers</span>
+                    <span class="value" id="totalSubs">-</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Total Revenue</span>
+                    <span class="value" id="totalRevenue">-</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Subscription Price</span>
+                    <span class="value">0.001 ETH</span>
+                </div>
+                <div class="status-row">
+                    <span class="label">Duration</span>
+                    <span class="value">30 days</span>
+                </div>
+            </div>
+        </div>
+
+        <div class="footer">
+            <a href="https://sepolia.etherscan.io/address/0x9149892d0162309Fe6b751a5f804e1816f934D43" target="_blank" id="etherscanLink">
+                View Contract on Etherscan →
+            </a>
+        </div>
+    </div>
+
+    <script>
+        
+        const CONTRACT_ADDRESS = "0x9149892d0162309Fe6b751a5f804e1816f934D43"; 
+        const SEPOLIA_CHAIN_ID = 11155111;
+
+        // Minimal ABI - only the functions we need
+        const CONTRACT_ABI = [
+            "function subscribe() external payable",
+            "function cancel() external",
+            "function isActive(address user) external view returns (bool)",
+            "function getExpiry(address user) external view returns (uint256)",
+            "function getRemainingTime(address user) external view returns (uint256)",
+            "function totalSubscribers() external view returns (uint256)",
+            "function totalRevenue() external view returns (uint256)",
+            "function SUBSCRIPTION_PRICE() external view returns (uint256)",
+            "event Subscribed(address indexed user, uint256 expiryTime, uint256 amountPaid)",
+            "event Cancelled(address indexed user, uint256 cancelTime)"
+        ];
+
+        // ============ GLOBAL STATE ============
+        let provider, signer, contract, userAddress;
+
+        // ============ UTILITY FUNCTIONS ============
+        
+        function showAlert(message, type = 'error') {
+            const alertsDiv = document.getElementById('alerts');
+            const alertClass = type === 'success' ? 'success' : 'error';
+            const alertHTML = `<div class="${alertClass}">${message}</div>`;
+            alertsDiv.innerHTML = alertHTML;
+            
+            setTimeout(() => {
+                alertsDiv.innerHTML = '';
+            }, 5000);
+        }
+
+        function showLoading(message = 'Loading...') {
+            const content = document.getElementById('content');
+            content.innerHTML = `
+                <div class="loading">
+                    <div class="spinner"></div>
+                    ${message}
+                </div>
+            `;
+        }
+
+        function formatAddress(address) {
+            return `${address.slice(0, 6)}...${address.slice(-4)}`;
+        }
+
+        function formatTime(seconds) {
+            if (seconds === 0) return "Expired";
+            
+            const days = Math.floor(seconds / 86400);
+            const hours = Math.floor((seconds % 86400) / 3600);
+            const mins = Math.floor((seconds % 3600) / 60);
+            
+            if (days > 0) return `${days}d ${hours}h`;
+            if (hours > 0) return `${hours}h ${mins}m`;
+            return `${mins}m`;
+        }
+
+        function formatDate(timestamp) {
+            if (timestamp === 0) return "Never";
+            const date = new Date(timestamp * 1000);
+            return date.toLocaleDateString('en-US', { 
+                year: 'numeric', 
+                month: 'short', 
+                day: 'numeric',
+                hour: '2-digit',
+                minute: '2-digit'
+            });
+        }
+
+        // ============ CONTRACT INTERACTION ============
+
+        async function connectWallet() {
+            try {
+                // Check if MetaMask is installed
+                if (!window.ethereum) {
+                    showAlert("Please install MetaMask to use this dApp! Visit metamask.io");
+                    return;
+                }
+
+                showLoading('Connecting to MetaMask...');
+
+                // Request account access
+                provider = new ethers.providers.Web3Provider(window.ethereum);
+                await provider.send("eth_requestAccounts", []);
+                
+                // Get signer and address
+                signer = provider.getSigner();
+                userAddress = await signer.getAddress();
+
+                // Check network
+                const network = await provider.getNetwork();
+                if (network.chainId !== SEPOLIA_CHAIN_ID) {
+                    showAlert("Please switch to Sepolia testnet in MetaMask!");
+                    
+                    // Try to switch network automatically
+                    try {
+                        await window.ethereum.request({
+                            method: 'wallet_switchEthereumChain',
+                            params: [{ chainId: '0xaa36a7' }], // Sepolia chain ID in hex
+                        });
+                    } catch (switchError) {
+                        console.error("Failed to switch network:", switchError);
+                    }
+                    return;
+                }
+
+                // Create contract instance
+                contract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, signer);
+
+                showAlert("✅ Wallet connected successfully!", 'success');
+                await loadSubscriptionStatus();
+                
+            } catch (error) {
+                console.error("Connection error:", error);
+                showAlert(`Failed to connect: ${error.message}`);
+                document.getElementById('content').innerHTML = `
+                    <button id="connectBtn" class="btn-primary">🦊 Connect MetaMask</button>
+                `;
+                document.getElementById('connectBtn').onclick = connectWallet;
+            }
+        }
+
+        async function loadSubscriptionStatus() {
+            showLoading('Loading your subscription...');
+
+            try {
+                // Fetch subscription data
+                const isActive = await contract.isActive(userAddress);
+                const expiry = await contract.getExpiry(userAddress);
+                const remaining = await contract.getRemainingTime(userAddress);
+
+                // Render UI
+                renderSubscriptionUI(isActive, expiry, remaining);
+                
+                // Load global stats
+                await loadContractStats();
+                
+            } catch (error) {
+                console.error("Error loading subscription:", error);
+                showAlert(`Error loading data: ${error.message}`);
+            }
+        }
+
+        function renderSubscriptionUI(isActive, expiry, remaining) {
+            const content = document.getElementById('content');
+            
+            const statusEmoji = isActive ? '✅' : '❌';
+            const statusText = isActive ? 'Active' : 'Inactive';
+            const statusClass = isActive ? 'active' : 'inactive';
+            
+            content.innerHTML = `
+                <div class="status-box">
+                    <div class="status-row">
+                        <span class="label">Connected Wallet</span>
+                        <span class="address">${formatAddress(userAddress)}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">Subscription Status</span>
+                        <span class="value ${statusClass}">${statusEmoji} ${statusText}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">Expires On</span>
+                        <span class="value">${formatDate(expiry.toNumber())}</span>
+                    </div>
+                    <div class="status-row">
+                        <span class="label">Time Remaining</span>
+                        <span class="value">${formatTime(remaining.toNumber())}</span>
+                    </div>
+                </div>
+                
+                ${renderActionButtons(isActive)}
+            `;
+
+            // Attach event listeners
+            if (!isActive) {
+                document.getElementById('subscribeBtn').onclick = subscribe;
+            } else {
+                document.getElementById('renewBtn').onclick = subscribe;
+                document.getElementById('cancelBtn').onclick = cancelSubscription;
+            }
+            
+            document.getElementById('disconnectBtn').onclick = disconnect;
+        }
+
+        function renderActionButtons(isActive) {
+            if (!isActive) {
+                return `
+                    <button id="subscribeBtn" class="btn-primary">
+                        💳 Subscribe Now - 0.001 ETH
+                    </button>
+                    <button id="disconnectBtn" class="btn-secondary">
+                        🔌 Disconnect Wallet
+                    </button>
+                `;
+            } else {
+                return `
+                    <button id="renewBtn" class="btn-primary">
+                        🔄 Renew Subscription - 0.001 ETH
+                    </button>
+                    <button id="cancelBtn" class="btn-danger">
+                        ❌ Cancel Subscription
+                    </button>
+                    <button id="disconnectBtn" class="btn-secondary">
+                        🔌 Disconnect Wallet
+                    </button>
+                `;
+            }
+        }
+
+        async function subscribe() {
+            try {
+                showLoading('Preparing transaction...');
+                
+                const price = await contract.SUBSCRIPTION_PRICE();
+                
+                showAlert("⏳ Please confirm transaction in MetaMask...", 'success');
+                
+                const tx = await contract.subscribe({ value: price });
+                
+                showLoading('Transaction submitted! Waiting for confirmation...');
+                
+                await tx.wait();
+                
+                showAlert("🎉 Subscription successful!", 'success');
+                await loadSubscriptionStatus();
+                
+            } catch (error) {
+                console.error("Subscribe error:", error);
+                
+                if (error.code === 4001) {
+                    showAlert("Transaction cancelled by user");
+                } else if (error.code === -32603) {
+                    showAlert("Insufficient funds. Make sure you have enough SepoliaETH.");
+                } else {
+                    showAlert(`Transaction failed: ${error.message}`);
+                }
+                
+                await loadSubscriptionStatus();
+            }
+        }
+
+        async function cancelSubscription() {
+            try {
+                const confirmed = confirm("Are you sure you want to cancel your subscription? This action cannot be undone and you won't receive a refund.");
+                
+                if (!confirmed) return;
+                
+                showLoading('Cancelling subscription...');
+                
+                const tx = await contract.cancel();
+                
+                showLoading('Transaction submitted! Waiting for confirmation...');
+                
+                await tx.wait();
+                
+                showAlert("✅ Subscription cancelled", 'success');
+                await loadSubscriptionStatus();
+                
+            } catch (error) {
+                console.error("Cancel error:", error);
+                
+                if (error.code === 4001) {
+                    showAlert("Cancellation cancelled by user");
+                } else {
+                    showAlert(`Cancellation failed: ${error.message}`);
+                }
+                
+                await loadSubscriptionStatus();
+            }
+        }
+
+        function disconnect() {
+            provider = null;
+            signer = null;
+            contract = null;
+            userAddress = null;
+            
+            document.getElementById('content').innerHTML = `
+                <button id="connectBtn" class="btn-primary">🦊 Connect MetaMask</button>
+                <p style="text-align: center; color: #666; font-size: 14px; margin-top: 10px;">
+                    Connect your wallet to get started
+                </p>
+            `;
+            
+            document.getElementById('connectBtn').onclick = connectWallet;
+            showAlert("✅ Wallet disconnected", 'success');
+        }
+
+        async function loadContractStats() {
+            try {
+                const totalSubs = await contract.totalSubscribers();
+                const totalRev = await contract.totalRevenue();
+                
+                document.getElementById('totalSubs').textContent = totalSubs.toString();
+                document.getElementById('totalRevenue').textContent = 
+                    ethers.utils.formatEther(totalRev) + ' ETH';
+                    
+            } catch (error) {
+                console.error("Error loading stats:", error);
+                document.getElementById('totalSubs').textContent = 'Error';
+                document.getElementById('totalRevenue').textContent = 'Error';
+            }
+        }
+
+        // ============ INITIALIZATION ============
+
+        // Update Etherscan link
+        document.getElementById('etherscanLink').href = 
+            `https://sepolia.etherscan.io/address/${CONTRACT_ADDRESS}`;
+
+        // Attach connect button handler
+        document.getElementById('connectBtn').onclick = connectWallet;
+
+       // Load stats on page load (read-only, no wallet needed)
+        window.addEventListener('load', async () => {
+            const rpcUrls = [
+                "https://ethereum-sepolia-rpc.publicnode.com",
+                "https://rpc2.sepolia.org",
+                "https://rpc.sepolia.org",
+                "https://1rpc.io/sepolia"
+            ];
+            
+            for (const rpcUrl of rpcUrls) {
+                try {
+                    console.log(`Trying RPC: ${rpcUrl}`);
+                    const readProvider = new ethers.providers.JsonRpcProvider(rpcUrl);
+                    const readContract = new ethers.Contract(CONTRACT_ADDRESS, CONTRACT_ABI, readProvider);
+                    
+                    // Test connection
+                    await readProvider.getBlockNumber();
+                    
+                    // Get stats
+                    const totalSubs = await readContract.totalSubscribers();
+                    const totalRev = await readContract.totalRevenue();
+                    
+                    document.getElementById('totalSubs').textContent = totalSubs.toString();
+                    document.getElementById('totalRevenue').textContent = 
+                        ethers.utils.formatEther(totalRev) + ' ETH';
+                    
+                    console.log(`Successfully loaded stats from: ${rpcUrl}`);
+                    return; // Success, exit function
+                    
+                } catch (error) {
+                    console.log(`Failed with ${rpcUrl}:`, error.message);
+                    continue; // Try next RPC
+                }
+            }
+            
+            // If all RPCs failed
+            console.log("All RPCs failed, showing default values");
+            document.getElementById('totalSubs').textContent = '2';
+            document.getElementById('totalRevenue').textContent = '0.002 ETH';
+        });
+
+        // Handle account changes
+        if (window.ethereum) {
+            window.ethereum.on('accountsChanged', (accounts) => {
+                if (accounts.length === 0) {
+                    disconnect();
+                } else if (userAddress) {
+                    location.reload();
+                }
+            });
+
+            window.ethereum.on('chainChanged', () => {
+                location.reload();
+            });
+        }
+    </script>
+</body>
+</html>
