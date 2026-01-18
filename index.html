@@ -537,24 +537,34 @@
 
         async function subscribe() {
             try {
-                showLoading('Preparing transaction...');
-                
                 const price = await contract.SUBSCRIPTION_PRICE();
-                
+
+                // 🔹 Balance check FIRST (no loading yet)
+                const balanceWei = await provider.getBalance(userAddress);
+                const gasBuffer = ethers.utils.parseEther("0.0002");
+
+                if (balanceWei.lt(price.add(gasBuffer))) {
+                    showAlert(
+                        "❌ Insufficient balance. Please get Sepolia test ETH from a faucet before subscribing."
+                    );
+                    return; // ⬅️ stop here, no UI reload
+                }
+
+                // 🔹 Only now show loading
+                showLoading('Preparing transaction...');
                 showAlert("⏳ Please confirm transaction in MetaMask...", 'success');
-                
+
                 const tx = await contract.subscribe({ value: price });
-                
+
                 showLoading('Transaction submitted! Waiting for confirmation...');
-                
                 await tx.wait();
-                
+
                 showAlert("🎉 Subscription successful!", 'success');
                 await loadSubscriptionStatus();
-                
+
             } catch (error) {
                 console.error("Subscribe error:", error);
-                
+
                 if (error.code === 4001) {
                     showAlert("Transaction cancelled by user");
                 } else if (error.code === -32603) {
@@ -562,10 +572,11 @@
                 } else {
                     showAlert(`Transaction failed: ${error.message}`);
                 }
-                
+
                 await loadSubscriptionStatus();
             }
         }
+
 
         async function cancelSubscription() {
             try {
